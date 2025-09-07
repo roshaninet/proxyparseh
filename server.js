@@ -51,7 +51,7 @@ app.use(async (req, res, next) => {
 app.use(
     "/",
     createProxyMiddleware({
-        target: `https://${server}.myparseh.com`,
+        target: `https://mb1.myparseh.com`,
         changeOrigin: true,
         auth: "parseh:Hcy%cb@c7sh!26dh2!c8dja!23",
         secure: false
