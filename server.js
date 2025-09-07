@@ -3,7 +3,6 @@ const {createProxyMiddleware} = require("http-proxy-middleware");
 const axios = require("axios");
 
 const app = express();
-const server = req.query?.server || "mb1";
 app.use(async (req, res, next) => {
     if (req.path.match(/\.(ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
         return next();
