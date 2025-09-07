@@ -4,6 +4,14 @@ const axios = require("axios");
 
 const app = express();
 app.use(async (req, res, next) => {
+    if (req.path.match(/\.(ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
+        return next();
+    }
+
+    if(!req.path.includes("/playback/presentation/")){
+        return next();
+    }
+
     const token = req.query.token;
     const roomId = req.query.room_id;
     const apiUrl = "api.myparseh.com"
