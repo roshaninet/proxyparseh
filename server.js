@@ -6,7 +6,7 @@ const app = express();
 app.use(async (req, res, next) => {
     const token = req.query.token;
     const roomId = req.query.room_id;
-    const apiUrl = "api.ostadana.test"
+    const apiUrl = "api.myparseh.com"
     if (!token || !roomId) {
         return res.status(400).json({message: "برای مشاهده ویدیو در سایت پارسه وارد حساب کاربری شوید. "});
     }
