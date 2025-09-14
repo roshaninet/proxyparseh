@@ -48,7 +48,7 @@ app.use(async (req, res, next) => {
         }
     } catch (err) {
         console.error("Validation failed:", err.response?.data || err.message);
-        return res.status(401).json({message: "Invalid or expired token"});
+        return res.status(401).json({message: err.response?.data || err.message});
     }
 });
 
