@@ -15,6 +15,7 @@ app.use(async (req, res, next) => {
     const token = req.query.token;
     const roomId = req.query.room_id;
     const apiUrl = "api.myparseh.com"
+    //const apiUrl = "api.ostadana.test"
     if (!token || !roomId) {
         return res.status(400).json({message: "برای مشاهده ویدیو در سایت پارسه وارد حساب کاربری شوید. "});
     }
@@ -23,14 +24,14 @@ app.use(async (req, res, next) => {
         // Call Laravel validate endpoint
         const https = require("https");
         const agent = new https.Agent({rejectUnauthorized: false});
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const linkWithoutQuery = `${req.protocol}://${req.get('host')}${req.path}`;
+        // console.log({link: linkWithoutQuery, room_id: roomId, token: token, ip: clientIp})
 
         const response = await axios.post(
-            `https://${apiUrl}/api/validate`,
-            {room_id: roomId}, // بدنه POST
+            `https://${apiUrl}/api/validate-token`,
+            {link: linkWithoutQuery, room_id: roomId, token: token, ip: clientIp}, // بدنه POST
             {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
                 httpsAgent: agent
             }
         );
