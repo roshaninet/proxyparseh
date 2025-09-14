@@ -3,6 +3,7 @@ const {createProxyMiddleware} = require("http-proxy-middleware");
 const axios = require("axios");
 
 const app = express();
+app.set('trust proxy', true);
 app.use(async (req, res, next) => {
     if (req.path.match(/\.(ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
         return next();
@@ -24,8 +25,12 @@ app.use(async (req, res, next) => {
         // Call Laravel validate endpoint
         const https = require("https");
         const agent = new https.Agent({rejectUnauthorized: false});
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        const linkWithoutQuery = `${req.protocol}://${req.get('host')}${req.path}`;
+        let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        // If IPv6-mapped IPv4, remove the ::ffff: prefix
+        if (clientIp.startsWith("::ffff:")) {
+            clientIp = clientIp.split(":").pop();
+        }
+        const linkWithoutQuery = `https://${req.get('host')}${req.path}`;
         // console.log({link: linkWithoutQuery, room_id: roomId, token: token, ip: clientIp})
 
         const response = await axios.post(
