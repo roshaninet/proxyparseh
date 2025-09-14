@@ -1,3 +1,9 @@
+const express = require("express");
+const {createProxyMiddleware} = require("http-proxy-middleware");
+const axios = require("axios");
+
+const app = express();
+app.set('trust proxy', true);
 app.use(async (req, res, next) => {
     if (req.path.match(/\.(ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
         return next();
@@ -78,9 +84,25 @@ app.use(async (req, res, next) => {
                 </head>
                 <body>
                     <h1>توکن نامعتبر یا منقضی شده است</h1>
-                    <p>${err.response?.data || err.message}</p>
+                    <p>${err.response?.object || err.message}</p>
                 </body>
             </html>
         `);
     }
+});
+
+
+// Proxy to target
+app.use(
+    "/",
+    createProxyMiddleware({
+        target: `https://mb1.myparseh.com`,
+        changeOrigin: true,
+        auth: "parseh:Hcy%cb@c7sh!26dh2!c8dja!23",
+        secure: false
+    })
+);
+
+app.listen(3710, () => {
+    console.log("Proxy running at http://localhost:3710");
 });
