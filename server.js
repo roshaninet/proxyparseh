@@ -96,9 +96,9 @@ app.use(async (req, res, next) => {
 app.use(
     "/",
     createProxyMiddleware({
-        target: `https://mb1.myparseh.com`,
+        target: `https://bbb1.myparseh.com`,
         changeOrigin: true,
-        auth: "parseh:Hcy%cb@c7sh!26dh2!c8dja!23",
+        auth: "myparseh:My@54321",
         secure: false
     })
 );
