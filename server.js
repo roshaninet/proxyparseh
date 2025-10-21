@@ -3,9 +3,10 @@ const {createProxyMiddleware} = require("http-proxy-middleware");
 const axios = require("axios");
 
 const app = express();
+var serverAdd = "bbb1";
 app.set('trust proxy', true);
 app.use(async (req, res, next) => {
-    if (req.path.match(/\.(ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
+    if (req.path.match(/\.(json|ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
         return next();
     }
 
@@ -42,7 +43,8 @@ app.use(async (req, res, next) => {
         if (clientIp.startsWith("::ffff:")) {
             clientIp = clientIp.split(":").pop();
         }
-        const linkWithoutQuery = `https://${req.get('host')}${req.path}`;
+        const host = req.get('host').split(':')[0]; // remove any existing port
+        const linkWithoutQuery = `https://${host}:8443${req.path}`;
 
         const response = await axios.post(
             `https://${apiUrl}/api/validate-token`,
@@ -71,6 +73,7 @@ app.use(async (req, res, next) => {
             `);
         }
     } catch (err) {
+
         console.error("Validation failed:", err.response?.data || err.message);
         return res.status(401).send(`
             <html>
@@ -96,7 +99,7 @@ app.use(async (req, res, next) => {
 app.use(
     "/",
     createProxyMiddleware({
-        target: `https://bbb1.myparseh.com`,
+        target: `https://${serverAdd}.myparseh.com`,
         changeOrigin: true,
         auth: "myparseh:My@54321",
         secure: false
