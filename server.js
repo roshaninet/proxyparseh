@@ -1,111 +1,75 @@
 const express = require("express");
-const {createProxyMiddleware} = require("http-proxy-middleware");
+const { createProxyMiddleware } = require("http-proxy-middleware");
 const axios = require("axios");
+const https = require("https");
 
 const app = express();
-var serverAdd = "bbb1";
-app.set('trust proxy', true);
+app.set("trust proxy", true);
+
+const serverAdd = "bbb1";
+const apiUrl = "https://api.myparseh.com";
+
+// ✅ Reuse one agent across all requests
+const agent = new https.Agent({
+    rejectUnauthorized: false,
+    keepAlive: true,
+    maxSockets: 100, // prevent too many open sockets
+});
+
+// ✅ Axios instance with timeout & agent
+const apiClient = axios.create({
+    httpsAgent: agent,
+    timeout: 5000, // 5 seconds timeout
+});
+
 app.use(async (req, res, next) => {
-    if (req.path.match(/\.(json|ico|mp4|webm|css|xml|json|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
+    // Skip static assets
+    if (req.path.match(/\.(json|ico|mp4|webm|css|xml|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|map)$/)) {
         return next();
     }
 
+    // Only handle playback validation
     if (!req.path.includes("/playback/presentation/")) {
         return next();
     }
 
-    const token = req.query.token;
-    const roomId = req.query.room_id;
-    const apiUrl = "api.myparseh.com";
+    const { token, room_id: roomId } = req.query;
     if (!token || !roomId) {
-        return res.status(400).send(`
-            <html>
-                <head>
-                    <title>خطا</title>
-                    <style>
-                        body { font-family: sans-serif; text-align: center; padding: 50px; }
-                        h1 { color: #c00; }
-                        p { font-size: 18px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>دسترسی غیرمجاز</h1>
-                    <p>برای مشاهده ویدیو در سایت پارسه وارد حساب کاربری شوید.</p>
-                </body>
-            </html>
-        `);
+        return res.status(400).send("Invalid request.");
     }
 
     try {
-        const https = require("https");
-        const agent = new https.Agent({rejectUnauthorized: false});
-        let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        if (clientIp.startsWith("::ffff:")) {
-            clientIp = clientIp.split(":").pop();
-        }
-        const host = req.get('host').split(':')[0]; // remove any existing port
+        let clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        if (clientIp.startsWith("::ffff:")) clientIp = clientIp.split(":").pop();
+
+        const host = req.get("host").split(":")[0];
         const linkWithoutQuery = `https://${host}:8443${req.path}`;
 
-        const response = await axios.post(
-            `https://${apiUrl}/api/validate-token`,
-            { link: linkWithoutQuery, room_id: roomId, token: token, ip: clientIp },
-            { httpsAgent: agent }
-        );
+        const response = await apiClient.post(`${apiUrl}/api/validate-token`, {
+            link: linkWithoutQuery,
+            room_id: roomId,
+            token,
+            ip: clientIp,
+        });
 
-        if (response.data.success) {
-            return next();
-        } else {
-            return res.status(403).send(`
-                <html>
-                    <head>
-                        <title>دسترسی محدود</title>
-                        <style>
-                            body { font-family: sans-serif; text-align: center; padding: 50px; }
-                            h1 { color: #c00; }
-                            p { font-size: 18px; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>دسترسی محدود</h1>
-                        <p>${response.data.message || "Access denied"}</p>
-                    </body>
-                </html>
-            `);
-        }
+        if (response.data.success) return next();
+
+        return res.status(403).send("Access denied.");
     } catch (err) {
-
-        console.error("Validation failed:", err.response?.data || err.message);
-        return res.status(401).send(`
-            <html>
-                <head>
-                    <title>توکن نامعتبر</title>
-                    <style>
-                        body { font-family: sans-serif; text-align: center; padding: 50px; }
-                        h1 { color: #c00; }
-                        p { font-size: 18px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>توکن نامعتبر یا منقضی شده است</h1>
-                    <p>${err.response?.object || err.message}</p>
-                </body>
-            </html>
-        `);
+        console.error("Validation error:", err.message);
+        return res.status(401).send("Invalid or expired token.");
     }
 });
 
-
-// Proxy to target
+// ✅ Proxy (with limited connections)
 app.use(
     "/",
     createProxyMiddleware({
         target: `https://${serverAdd}.myparseh.com`,
         changeOrigin: true,
         auth: "myparseh:My@54321",
-        secure: false
+        secure: false,
     })
 );
 
-app.listen(3710, () => {
-    console.log("Proxy running at http://localhost:3710");
-});
+app.listen(3710, () => console.log("Proxy running at http://localhost:3710"));
